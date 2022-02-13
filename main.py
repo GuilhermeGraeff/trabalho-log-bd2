@@ -69,7 +69,7 @@ for line in bdInitialState:
 	bdInitialStateVector.append(splitedLine)
 print(bdInitialStateVector)
 
-for item in  range(0,len(bdInitialStateVector),1):
+for item in range(0,len(bdInitialStateVector),1):
 	if bdInitialStateVector[item][2] == 'Not Inserted':
 		sql = 'INSERT INTO log_test VALUES ('+bdInitialStateVector[item][0][1]+',0,0)'
 		executeQuarry(con, sql)
@@ -77,11 +77,12 @@ for item in  range(0,len(bdInitialStateVector),1):
 			if bdInitialStateVector[itemTemp][0][1] == bdInitialStateVector[item][0][1]:
 				bdInitialStateVector[itemTemp][2] = 'Inserted'
 
-for item in  range(0,len(bdInitialStateVector),1):
-	if bdInitialStateVector[item]:
-	elif :
-	sql = 'UPDATE table_name SET a = value1, column2 = value2, WHERE condition'
-
+for item in range(0,len(bdInitialStateVector),1):
+	if bdInitialStateVector[item][0][0] == 'A':
+		sql = 'UPDATE log_test SET id = '+bdInitialStateVector[item][0][1]+', A = '+bdInitialStateVector[item][1]+' WHERE id ='+bdInitialStateVector[item][0][1]
+	elif bdInitialStateVector[item][0][0] == 'B':
+		sql = 'UPDATE log_test SET id = '+bdInitialStateVector[item][0][1]+', B = '+bdInitialStateVector[item][1]+' WHERE id ='+bdInitialStateVector[item][0][1]
+	executeQuarry(con, sql)
 
 
 con.close()
