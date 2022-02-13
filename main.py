@@ -1,13 +1,89 @@
+import psycopg2
+# Conexão com o postgres:
+def conecta_db():
+	con = psycopg2.connect(host='localhost', 
+							database='trab_bd2',
+							user='postgres', 
+							password='123456')
+	return con
 
-num1 = 10
-num2 = 14
-num3 = 12
+def executeQuarry(con, sql):
+	cur = con.cursor()
+	cur.execute(sql)
+	con.commit()
 
-if (num1 >= num2) and (num1 >= num3):
-   largest = num1
-elif (num2 >= num1) and (num2 >= num3):
-   largest = num2
-else:
-   largest = num3
 
-print("The largest number is", largest)
+fileName = 'entradaLog.txt'
+try:
+    file = open(fileName, "r", encoding="utf-8")
+except:
+    print(
+        f"Algo deu errado D:\nArquivo '{fileName}' não encontrado ou inválido")
+    exit(0)
+
+fileArray = file.read().splitlines()
+
+
+log = []
+bdInitialState = []
+for i in fileArray:
+	if(i.startswith("<")):
+		log.append(i)
+	else:
+		bdInitialState.append(i)
+
+spacesCount = 0
+for j in bdInitialState:
+	if(j == ''):
+		spacesCount += 1	
+for i in range(0,spacesCount,1):
+	bdInitialState.remove('')
+
+
+# print('BD Initial State:\n')
+# for i in bdInitialState:
+# 	print(i)
+
+# print('Log:\n')
+# for i in log:
+# 	print(i)
+
+con = conecta_db()
+
+# Dropando a tabela caso ela já exista
+sql = 'DROP TABLE IF EXISTS log_test'
+executeQuarry(con, sql)
+# Criando a tabela dos deputados
+sql = 'CREATE TABLE log_test (id INT, a INT, b INT)'
+
+executeQuarry(con, sql)
+
+bdInitialStateVector = []
+for line in bdInitialState:
+	splitedLine = line.split('=')
+	for i in range(0,len(splitedLine),1):
+		splitedLine[i] = splitedLine[i].strip()
+		if ',' in splitedLine[i]:
+			splitedLine[i] = splitedLine[i].split(',')
+	splitedLine.append('Not Inserted')
+	bdInitialStateVector.append(splitedLine)
+print(bdInitialStateVector)
+
+for item in  range(0,len(bdInitialStateVector),1):
+	if bdInitialStateVector[item][2] == 'Not Inserted':
+		sql = 'INSERT INTO log_test VALUES ('+bdInitialStateVector[item][0][1]+',0,0)'
+		executeQuarry(con, sql)
+		for itemTemp in range(0,len(bdInitialStateVector),1):
+			if bdInitialStateVector[itemTemp][0][1] == bdInitialStateVector[item][0][1]:
+				bdInitialStateVector[itemTemp][2] = 'Inserted'
+
+for item in  range(0,len(bdInitialStateVector),1):
+	if bdInitialStateVector[item]:
+	elif :
+	sql = 'UPDATE table_name SET a = value1, column2 = value2, WHERE condition'
+
+
+
+con.close()
+
+exit(0)
