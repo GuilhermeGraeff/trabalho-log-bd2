@@ -1,12 +1,13 @@
 import psycopg2
 # Conexão com o postgres:
-def conecta_db():
+def conexaoPostgres():
 	con = psycopg2.connect(host='localhost', 
 							database='trab_bd2',
 							user='postgres', 
 							password='123456')
 	return con
 
+# Função que executa queries
 def executeQuarry(con, sql):
 	cur = con.cursor()
 	cur.execute(sql)
@@ -40,15 +41,7 @@ for i in range(0,spacesCount,1):
 	bdInitialState.remove('')
 
 
-# print('BD Initial State:\n')
-# for i in bdInitialState:
-# 	print(i)
-
-# print('Log:\n')
-# for i in log:
-# 	print(i)
-
-con = conecta_db()
+con = conexaoPostgres()
 
 # Dropando a tabela caso ela já exista
 sql = 'DROP TABLE IF EXISTS log_test'
@@ -83,6 +76,8 @@ for item in range(0,len(bdInitialStateVector),1):
 	elif bdInitialStateVector[item][0][0] == 'B':
 		sql = 'UPDATE log_test SET id = '+bdInitialStateVector[item][0][1]+', B = '+bdInitialStateVector[item][1]+' WHERE id ='+bdInitialStateVector[item][0][1]
 	executeQuarry(con, sql)
+
+
 
 
 con.close()
