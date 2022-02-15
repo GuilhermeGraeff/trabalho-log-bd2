@@ -1,4 +1,5 @@
 import psycopg2
+
 # Conexão com o postgres:
 def conexaoPostgres():
 	con = psycopg2.connect(host='localhost', 
@@ -43,14 +44,6 @@ for i in range(0,spacesCount,1):
 
 con = conexaoPostgres()
 
-# Dropando a tabela caso ela já exista
-sql = 'DROP TABLE IF EXISTS log_test'
-executeQuarry(con, sql)
-# Criando a tabela dos deputados
-sql = 'CREATE TABLE log_test (id INT, a INT, b INT)'
-
-executeQuarry(con, sql)
-
 bdInitialStateVector = []
 for line in bdInitialState:
 	splitedLine = line.split('=')
@@ -59,48 +52,122 @@ for line in bdInitialState:
 		if ',' in splitedLine[i]:
 			splitedLine[i] = splitedLine[i].split(',')
 	splitedLine.append('Not Inserted')
+
 	bdInitialStateVector.append(splitedLine)
 
 
+
+# Dropando a tabela caso ela já exista
+sql = 'DROP TABLE IF EXISTS log_test'
+executeQuarry(con, sql)
+
+columnNames = []
+sqlColumns = ''
+for item in range(0,len(bdInitialStateVector),1):
+	if bdInitialStateVector[item][0][0] not in columnNames:
+		sqlColumns = sqlColumns+', '+bdInitialStateVector[item][0][0]+' INT'
+		columnNames.append(bdInitialStateVector[item][0][0])
+
+sql = 'CREATE TABLE log_test (id INT'+sqlColumns+')'
+executeQuarry(con, sql)
+
+numberOfZeros = ''
+for i in range(0,len(columnNames),1):
+	numberOfZeros = numberOfZeros+',0'
+
 for item in range(0,len(bdInitialStateVector),1):
 	if bdInitialStateVector[item][2] == 'Not Inserted':
-		sql = 'INSERT INTO log_test VALUES ('+bdInitialStateVector[item][0][1]+',0,0)'
+		sql = 'INSERT INTO log_test VALUES ('+bdInitialStateVector[item][0][1]+numberOfZeros+')'
 		executeQuarry(con, sql)
 		for itemTemp in range(0,len(bdInitialStateVector),1):
 			if bdInitialStateVector[itemTemp][0][1] == bdInitialStateVector[item][0][1]:
 				bdInitialStateVector[itemTemp][2] = 'Inserted'
 
 for item in range(0,len(bdInitialStateVector),1):
-	if bdInitialStateVector[item][0][0] == 'A':
-		sql = 'UPDATE log_test SET id = '+bdInitialStateVector[item][0][1]+', A = '+bdInitialStateVector[item][1]+' WHERE id ='+bdInitialStateVector[item][0][1]
-	elif bdInitialStateVector[item][0][0] == 'B':
-		sql = 'UPDATE log_test SET id = '+bdInitialStateVector[item][0][1]+', B = '+bdInitialStateVector[item][1]+' WHERE id ='+bdInitialStateVector[item][0][1]
+	sql = 'UPDATE log_test SET id = '+bdInitialStateVector[item][0][1]+', '+bdInitialStateVector[item][0][0]+' = '+bdInitialStateVector[item][1]+' WHERE id ='+bdInitialStateVector[item][0][1]
 	executeQuarry(con, sql)
 
-commitedTransactions = []
+commitedTransactions = {}
 checkpointStartLine = 0
-for line in range(len(log)-1,0,-1):
+
+teveCkptFuncional = False 
+for line in range(len(log)-1,-1,-1):
 	if 'CKPT' in log[line] and 'Start' in log[line]:
 		checkpointStartLine = line
-		print('Achou ckpt lina: ', line)
-		for lineEndCkpt in range(len(log)-1,0,-1):
-			print('    Procurando end ckpt...', lineEndCkpt)
+		for lineEndCkpt in range(len(log)-1,-1,-1):
 			if 'End' in log[lineEndCkpt] and lineEndCkpt > line:
-				print('   	-> Achou na linha: ', lineEndCkpt)
+				teveCkptFuncional = True
 				for lineCkpt in range(line,len(log)-1,1):
-	
 					if 'commit' in log[lineCkpt]:
-		
 						splitedCommit = log[lineCkpt].split(' ')
-						transaction = splitedCommit[1][:-1]
-						commitedTransactions.append(transaction)
+						commitedTransactions[splitedCommit[1][:-1]] = 'unvisited'
 				break
-
-print(commitedTransactions)
-print(checkpointStartLine)
 		
-for i in range(checkpointStartLine, len(log), 1):
-	
+lastStartLine = 0
+for line in range(len(log)-1,-1, -1):
+	encontreiTodosOsStarts = True
+	if 'unvisited' in commitedTransactions.values():
+		encontreiTodosOsStarts = False
+	if encontreiTodosOsStarts == True:
+		break
+	if 'start' in log[line] and 'CKPT' not in log[line]:
+		splitedStart = log[line].split(' ')
+		transaction = splitedStart[1][:-1]
+		if transaction in commitedTransactions.keys():
+			commitedTransactions[transaction] = 'visited'
+
+	lastStartLine = line
+
+commitedTransactionsIndependentOfCkpt = []
+for line in range(0,len(log)-1,1):
+	if 'commit' in log[line]:
+		splitedCommit = log[line].split(' ')
+		commitedTransactionsIndependentOfCkpt.append(splitedCommit[1][:-1])
+		
+		
+
+if teveCkptFuncional == True:		
+	# print('Teve checkpoint válido, estou fazendo o REDO daqueles que comitaram após o ChGuilherme graeffeckpoint:')
+	print('Saída')
+	for i in commitedTransactions.keys():
+		print('Transação',i,'realizou Redo')
+	for line in range(lastStartLine, len(log)-1, 1):
+		noMoreOrlessLine = log[line][1:-1]
+		splitedLine = noMoreOrlessLine.split(',')
+		if len(splitedLine) == 4:
+			if splitedLine[0] in commitedTransactions.keys():	
+				# print('Atualizei o dado de id: ', splitedLine[1],' Coluna: ',splitedLine[2] ,' para: ',splitedLine[3], ' -- Pela transição: ',splitedLine[0] )
+				sql = 'UPDATE log_test SET '+splitedLine[2]+ '='+splitedLine[3]+' WHERE id ='+splitedLine[1]
+				executeQuarry(con, sql)
+else: 
+	# print('Como não teve checkpoint válido, estou atualizando os dados de tudo que foi comitado:código do Guilherme graeff')
+	print('Saída')
+	for i in commitedTransactionsIndependentOfCkpt:
+		print('A transação ',i,' realizou REDO')
+	for line in range(0, len(log)-1, 1):
+		noMoreOrlessLine = log[line][1:-1]
+		splitedLine = noMoreOrlessLine.split(',')
+		if len(splitedLine) == 4:
+			if splitedLine[0] in commitedTransactionsIndependentOfCkpt:	
+				# print('Atualizei o dado de id: ', splitedLine[1],' Coluna: ',splitedLine[2] ,' para: ',splitedLine[3], ' -- Pela transição: ',splitedLine[0] )
+				sql = 'UPDATE log_test SET '+splitedLine[2]+ '='+splitedLine[3]+' WHERE id ='+splitedLine[1]
+				executeQuarry(con, sql)
+
+cursor = con.cursor()
+query= "select * from log_test"
+cursor.execute(query)
+logTestrecords = cursor.fetchall()
+print('Estado final do banco de dados:')
+print('    ', end = "")
+for i in columnNames:
+	print(i+'    ' , end = "")
+print('')
+
+for row in logTestrecords:
+	for i in row:
+		print(i,'  ' , end = "")
+	print('')
+
 con.close()
 
 exit(0)
