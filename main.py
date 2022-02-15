@@ -60,7 +60,7 @@ for line in bdInitialState:
 			splitedLine[i] = splitedLine[i].split(',')
 	splitedLine.append('Not Inserted')
 	bdInitialStateVector.append(splitedLine)
-print(bdInitialStateVector)
+
 
 for item in range(0,len(bdInitialStateVector),1):
 	if bdInitialStateVector[item][2] == 'Not Inserted':
@@ -77,9 +77,30 @@ for item in range(0,len(bdInitialStateVector),1):
 		sql = 'UPDATE log_test SET id = '+bdInitialStateVector[item][0][1]+', B = '+bdInitialStateVector[item][1]+' WHERE id ='+bdInitialStateVector[item][0][1]
 	executeQuarry(con, sql)
 
+commitedTransactions = []
+checkpointStartLine = 0
+for line in range(len(log)-1,0,-1):
+	if 'CKPT' in log[line] and 'Start' in log[line]:
+		checkpointStartLine = line
+		print('Achou ckpt lina: ', line)
+		for lineEndCkpt in range(len(log)-1,0,-1):
+			print('    Procurando end ckpt...', lineEndCkpt)
+			if 'End' in log[lineEndCkpt] and lineEndCkpt > line:
+				print('   	-> Achou na linha: ', lineEndCkpt)
+				for lineCkpt in range(line,len(log)-1,1):
+	
+					if 'commit' in log[lineCkpt]:
+		
+						splitedCommit = log[lineCkpt].split(' ')
+						transaction = splitedCommit[1][:-1]
+						commitedTransactions.append(transaction)
+				break
 
-
-
+print(commitedTransactions)
+print(checkpointStartLine)
+		
+for i in range(checkpointStartLine, len(log), 1):
+	
 con.close()
 
 exit(0)
