@@ -7,4 +7,4 @@ mas nããããão, é burro ainda por cima.
 
 E não pense que eu tô colocando esta mensagem aqui pra tu te sentir mal não, 
 espero realmente que tu aprenda de verdade que copiar o meu trabalho não te
-agrega e isso me deixa tranquilo.
+agrega nada além de nota(talvez) e isso me deixa tranquilo.
